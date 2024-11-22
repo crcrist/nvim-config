@@ -1,6 +1,5 @@
 -- Set up leader key (Space)
 vim.g.mapleader = " "
-
 -- Bootstrap lazy.nvim
 local lazypath = vim.fn.stdpath("data") .. "/lazy/lazy.nvim"
 if not vim.loop.fs_stat(lazypath) then
@@ -29,9 +28,34 @@ vim.opt.termguicolors = true -- True color support
 
 -- Plugin specifications
 require("lazy").setup({
-  -- Color scheme
-  { "folke/tokyonight.nvim", priority = 1000 },
+  -- Color scheme with proper setup
+  {
+    "Abstract-IDE/Abstract-cs",
+    name = "abstract-cs",
+    priority = 1000,
+    config = function()
+      -- Set up the colorscheme here
+      vim.cmd[[colorscheme abscs]]
+    end
+  },
   
+  -- Web devicons
+  {
+    "nvim-tree/nvim-web-devicons",
+    config = function()
+      require('nvim-web-devicons').setup({
+        override = {
+          lua = {
+            icon = "",
+            color = "#51a0cf",
+            name = "Lua"
+          },
+        },
+        default = true,
+      })
+    end
+  },
+
   -- File tree
   {
     "nvim-neo-tree/neo-tree.nvim",
@@ -40,6 +64,66 @@ require("lazy").setup({
       "nvim-tree/nvim-web-devicons",
       "MunifTanjim/nui.nvim",
     },
+    config = function()
+      require("neo-tree").setup({
+        default_component_configs = {
+          icon = {
+            folder_closed = "",
+            folder_open = "",
+            folder_empty = "󰜌",
+          },
+          git_status = {
+            symbols = {
+              added = "",
+              modified = "",
+              deleted = "✖",
+              renamed = "",
+              untracked = "",
+              ignored = "",
+              unstaged = "",
+              staged = "",
+              conflict = "",
+            }
+          },
+        }
+      })
+    end,
+  },
+
+  {
+    'nvim-telescope/telescope.nvim',
+    branch = '0.1.x', 
+    dependencies = { 
+      'nvim-lua/plenary.nvim',
+      {
+        'nvim-telescope/telescope-fzf-native.nvim',
+        build = 'make'
+      }
+    },
+    config = function()
+      local telescope = require('telescope')
+      local actions = require('telescope.actions')
+      
+      telescope.setup({
+        defaults = {
+          file_ignore_patterns = { "node_modules", ".git/" },
+          mappings = {
+            i = {
+              ["<C-k>"] = actions.move_selection_previous,
+              ["<C-j>"] = actions.move_selection_next,
+            }
+          }
+        }
+      })
+      
+      telescope.load_extension('fzf')
+      
+      local builtin = require('telescope.builtin')
+      vim.keymap.set('n', '<leader>p', builtin.find_files, { desc = 'Find files' })
+      vim.keymap.set('n', '<leader>ps', builtin.live_grep, { desc = 'Live grep' })
+      vim.keymap.set('n', '<leader>pb', builtin.buffers, { desc = 'Find buffers' })
+      vim.keymap.set('n', '<leader>ph', builtin.help_tags, { desc = 'Help tags' })
+    end
   },
 
   -- Treesitter for better syntax highlighting
@@ -69,9 +153,45 @@ require("lazy").setup({
   },
 })
 
--- Color scheme setup
-vim.schedule(function()
-    vim.cmd[[colorscheme tokyonight]]
+-- LSP Configuration
+require("mason").setup()
+require("mason-lspconfig").setup({
+  ensure_installed = { "rust_analyzer" }
+})
+
+-- Configure rust-analyzer
+require("lspconfig").rust_analyzer.setup({
+  settings = {
+    ["rust-analyzer"] = {
+      checkOnSave = {
+        command = "clippy",
+      },
+      diagnostics = {
+        enable = true,
+      },
+    }
+  }
+})
+
+-- LSP keybindings
+vim.keymap.set('n', 'gD', vim.lsp.buf.declaration)
+vim.keymap.set('n', 'gd', vim.lsp.buf.definition)
+vim.keymap.set('n', 'K', vim.lsp.buf.hover)
+vim.keymap.set('n', '<leader>ca', vim.lsp.buf.code_action)
+vim.keymap.set('n', '<leader>f', vim.lsp.buf.format)
+
+-- Treesitter configuration
+require('nvim-treesitter.configs').setup({
+  ensure_installed = { "rust" },
+  highlight = {
+    enable = true,
+  },
+  indent = {
+    enable = true,
+  },
+})
+
+-- Keymaps (fixed the syntax)
+vim.keymap.set('n', '<leader>e', function()
+  vim.cmd('Neotree toggle')
 end)
--- Keymaps
-vim.keymap.set('n', '<leader>e', ':Neotree toggle<CR>')  -- Toggle file tree
