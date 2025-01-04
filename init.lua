@@ -1,3 +1,4 @@
+
 -- Set up leader key (Space)
 vim.g.mapleader = " "
 -- Bootstrap lazy.nvim
@@ -159,6 +160,17 @@ require("mason-lspconfig").setup({
   ensure_installed = { "rust_analyzer" }
 })
 
+-- Workaround for LSP diagnostic errors (e.g., code -32802)
+for _, method in ipairs({ 'textDocument/diagnostic', 'workspace/diagnostic' }) do
+  local default_diagnostic_handler = vim.lsp.handlers[method]
+  vim.lsp.handlers[method] = function(err, result, context, config)
+    if err ~= nil and err.code == -32802 then
+      return -- Ignore specific error code -32802
+    end
+    return default_diagnostic_handler(err, result, context, config)
+  end
+end
+
 -- Configure rust-analyzer
 require("lspconfig").rust_analyzer.setup({
   settings = {
@@ -195,3 +207,4 @@ require('nvim-treesitter.configs').setup({
 vim.keymap.set('n', '<leader>e', function()
   vim.cmd('Neotree toggle')
 end)
+
