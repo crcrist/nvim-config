@@ -1,6 +1,6 @@
-
 -- Set up leader key (Space)
 vim.g.mapleader = " "
+
 -- Bootstrap lazy.nvim
 local lazypath = vim.fn.stdpath("data") .. "/lazy/lazy.nvim"
 if not vim.loop.fs_stat(lazypath) then
@@ -16,45 +16,51 @@ end
 vim.opt.rtp:prepend(lazypath)
 
 -- Basic settings
-vim.opt.number = true         -- Line numbers
-vim.opt.relativenumber = true -- Relative line numbers
-vim.opt.shiftwidth = 2        -- Size of indent
-vim.opt.tabstop = 2          -- Size of tab
-vim.opt.expandtab = true     -- Use spaces instead of tabs
-vim.opt.smartindent = true   -- Auto indent
-vim.opt.wrap = false         -- No line wrap
-vim.opt.ignorecase = true    -- Ignore case in search
-vim.opt.smartcase = true     -- Unless uppercase is used
-vim.opt.termguicolors = true -- True color support
+vim.opt.number = true
+vim.opt.relativenumber = true
+vim.opt.shiftwidth = 2
+vim.opt.tabstop = 2
+vim.opt.expandtab = true
+vim.opt.smartindent = true
+vim.opt.wrap = false
+vim.opt.ignorecase = true
+vim.opt.smartcase = true
+vim.opt.termguicolors = true
 
 -- Plugin specifications
 require("lazy").setup({
-  -- Color scheme with proper setup
+  -- Color scheme
   {
-    "Abstract-IDE/Abstract-cs",
-    name = "abstract-cs",
+    "sainnhe/everforest",
     priority = 1000,
     config = function()
-      -- Set up the colorscheme here
-      vim.cmd[[colorscheme abscs]]
-    end
+      vim.g.everforest_background = 'soft'
+      vim.g.everforest_better_performance = 1
+      vim.cmd([[colorscheme everforest]])
+    end,
   },
-  
+
+  -- ToggleTerm
+  {
+    "akinsho/toggleterm.nvim",
+    config = function()
+      require("toggleterm").setup({
+        size = 20,
+        open_mapping = [[<C-\>]],
+        direction = "horizontal",
+        shade_terminals = true,
+      })
+    end,
+  },
+
   -- Web devicons
   {
     "nvim-tree/nvim-web-devicons",
     config = function()
       require('nvim-web-devicons').setup({
-        override = {
-          lua = {
-            icon = "",
-            color = "#51a0cf",
-            name = "Lua"
-          },
-        },
         default = true,
       })
-    end
+    end,
   },
 
   -- File tree
@@ -84,16 +90,17 @@ require("lazy").setup({
               unstaged = "",
               staged = "",
               conflict = "",
-            }
+            },
           },
-        }
+        },
       })
     end,
   },
 
+  -- Telescope
   {
-    'nvim-telescope/telescope.nvim',
-    branch = '0.1.x', 
+    "nvim-telescope/telescope.nvim",
+    branch = '0.1.x',
     dependencies = { 
       'nvim-lua/plenary.nvim',
       {
@@ -112,9 +119,9 @@ require("lazy").setup({
             i = {
               ["<C-k>"] = actions.move_selection_previous,
               ["<C-j>"] = actions.move_selection_next,
-            }
-          }
-        }
+            },
+          },
+        },
       })
       
       telescope.load_extension('fzf')
@@ -124,16 +131,28 @@ require("lazy").setup({
       vim.keymap.set('n', '<leader>ps', builtin.live_grep, { desc = 'Live grep' })
       vim.keymap.set('n', '<leader>pb', builtin.buffers, { desc = 'Find buffers' })
       vim.keymap.set('n', '<leader>ph', builtin.help_tags, { desc = 'Help tags' })
-    end
+    end,
   },
 
-  -- Treesitter for better syntax highlighting
+  -- Treesitter
   {
     "nvim-treesitter/nvim-treesitter",
     build = ":TSUpdate",
+    dependencies = { "nvim-treesitter/nvim-treesitter-textobjects" },
+    config = function()
+      require('nvim-treesitter.configs').setup({
+        ensure_installed = { "rust" },
+        highlight = {
+          enable = true,
+        },
+        indent = {
+          enable = true,
+        },
+      })
+    end,
   },
 
-  -- LSP Support
+  -- LSP and Autocompletion
   {
     "neovim/nvim-lspconfig",
     dependencies = {
@@ -141,8 +160,6 @@ require("lazy").setup({
       "williamboman/mason-lspconfig.nvim",
     },
   },
-
-  -- Autocompletion
   {
     "hrsh7th/nvim-cmp",
     dependencies = {
@@ -154,24 +171,18 @@ require("lazy").setup({
   },
 })
 
--- LSP Configuration
+-- Transparency fix
+vim.cmd([[
+  highlight Normal guibg=NONE ctermbg=NONE
+  highlight NormalFloat guibg=NONE ctermbg=NONE
+]])
+
+-- Mason and LSP configuration
 require("mason").setup()
 require("mason-lspconfig").setup({
-  ensure_installed = { "rust_analyzer" }
+  ensure_installed = { "rust_analyzer" },
 })
 
--- Workaround for LSP diagnostic errors (e.g., code -32802)
-for _, method in ipairs({ 'textDocument/diagnostic', 'workspace/diagnostic' }) do
-  local default_diagnostic_handler = vim.lsp.handlers[method]
-  vim.lsp.handlers[method] = function(err, result, context, config)
-    if err ~= nil and err.code == -32802 then
-      return -- Ignore specific error code -32802
-    end
-    return default_diagnostic_handler(err, result, context, config)
-  end
-end
-
--- Configure rust-analyzer
 require("lspconfig").rust_analyzer.setup({
   settings = {
     ["rust-analyzer"] = {
@@ -181,30 +192,29 @@ require("lspconfig").rust_analyzer.setup({
       diagnostics = {
         enable = true,
       },
-    }
-  }
+    },
+  },
 })
 
--- LSP keybindings
+-- LSP diagnostics workaround
+for _, method in ipairs({ 'textDocument/diagnostic', 'workspace/diagnostic' }) do
+  local default_diagnostic_handler = vim.lsp.handlers[method]
+  if default_diagnostic_handler then
+    vim.lsp.handlers[method] = function(err, result, context, config)
+      if err and err.code == -32802 then
+        return -- Ignore specific error code -32802
+      end
+      return default_diagnostic_handler(err, result, context, config)
+    end
+  end
+end
+
+-- Keymaps
 vim.keymap.set('n', 'gD', vim.lsp.buf.declaration)
 vim.keymap.set('n', 'gd', vim.lsp.buf.definition)
 vim.keymap.set('n', 'K', vim.lsp.buf.hover)
 vim.keymap.set('n', '<leader>ca', vim.lsp.buf.code_action)
 vim.keymap.set('n', '<leader>f', vim.lsp.buf.format)
-
--- Treesitter configuration
-require('nvim-treesitter.configs').setup({
-  ensure_installed = { "rust" },
-  highlight = {
-    enable = true,
-  },
-  indent = {
-    enable = true,
-  },
-})
-
--- Keymaps (fixed the syntax)
 vim.keymap.set('n', '<leader>e', function()
   vim.cmd('Neotree toggle')
 end)
-
