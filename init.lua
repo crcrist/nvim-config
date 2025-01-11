@@ -1,3 +1,4 @@
+
 -- Set up leader key (Space)
 vim.g.mapleader = " "
 
@@ -8,7 +9,7 @@ if not vim.loop.fs_stat(lazypath) then
     "git",
     "clone",
     "--filter=blob:none",
-    "https://github.com/folke/lazy.nvim.git",
+    "git@github.com:folke/lazy.nvim.git",
     "--branch=stable",
     lazypath,
   })
@@ -46,12 +47,14 @@ require("lazy").setup({
     config = function()
       require("toggleterm").setup({
         size = 20,
-        open_mapping = [[<C-\>]],
+        open_mapping = [[<C-t>]],
         direction = "horizontal",
         shade_terminals = true,
       })
     end,
   },
+  
+
 
   -- Web devicons
   {
@@ -75,22 +78,9 @@ require("lazy").setup({
       require("neo-tree").setup({
         default_component_configs = {
           icon = {
-            folder_closed = "",
-            folder_open = "",
-            folder_empty = "󰜌",
-          },
-          git_status = {
-            symbols = {
-              added = "",
-              modified = "",
-              deleted = "✖",
-              renamed = "",
-              untracked = "",
-              ignored = "",
-              unstaged = "",
-              staged = "",
-              conflict = "",
-            },
+            folder_closed = "",
+            folder_open = "",
+            folder_empty = "",
           },
         },
       })
@@ -114,7 +104,7 @@ require("lazy").setup({
       
       telescope.setup({
         defaults = {
-          file_ignore_patterns = { "node_modules", ".git/" },
+          file_ignore_patterns = { "node_modules", ".git/", "dist", "package-lock.json" },
           mappings = {
             i = {
               ["<C-k>"] = actions.move_selection_previous,
@@ -141,7 +131,7 @@ require("lazy").setup({
     dependencies = { "nvim-treesitter/nvim-treesitter-textobjects" },
     config = function()
       require('nvim-treesitter.configs').setup({
-        ensure_installed = { "rust" },
+        ensure_installed = { "rust", "lua", "python", "bash", "json" },
         highlight = {
           enable = true,
         },
@@ -172,16 +162,22 @@ require("lazy").setup({
 })
 
 -- Transparency fix
-vim.cmd([[
-  highlight Normal guibg=NONE ctermbg=NONE
-  highlight NormalFloat guibg=NONE ctermbg=NONE
-]])
+vim.cmd([[highlight Normal guibg=NONE ctermbg=NONE]])
+vim.cmd([[highlight NormalFloat guibg=NONE ctermbg=NONE]])
 
 -- Mason and LSP configuration
 require("mason").setup()
 require("mason-lspconfig").setup({
-  ensure_installed = { "rust_analyzer" },
+  ensure_installed = { "rust_analyzer", "pyright", "lua_ls", "tsserver" },
 })
+
+-- Python LSP setup
+require('lspconfig').pyright.setup{
+  capabilities = require('cmp_nvim_lsp').default_capabilities(),
+  on_attach = function(client, bufnr)
+    -- Your on_attach function if you have one
+  end
+}
 
 require("lspconfig").rust_analyzer.setup({
   settings = {
@@ -218,3 +214,4 @@ vim.keymap.set('n', '<leader>f', vim.lsp.buf.format)
 vim.keymap.set('n', '<leader>e', function()
   vim.cmd('Neotree toggle')
 end)
+
